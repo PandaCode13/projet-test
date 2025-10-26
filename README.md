@@ -14,9 +14,9 @@
 ### Avec Docker (recommandé)
  
 ```bash
-docker-compose up
+docker compose up
 ```
-
+```
 glycamed/
 ├── backend/
 │   ├── src/
@@ -41,3 +41,4 @@ glycamed/
 │   └── assets/
 ├── docker-compose.yml
 └── README.md
+```

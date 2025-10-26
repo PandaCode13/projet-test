@@ -1,35 +1,41 @@
-import { envConfig } from '#config/index.js';
-import express, { Express } from 'express';
+import connectDB from '#config/db.js';
+import { env } from '#config/index.js';
+import { User } from '#models/user.model.js';
+import cookieParser from 'cookie-parser';
 import cors from 'cors';
-import morgan from 'morgan';
+import express, { Express } from 'express';
 import helmet from 'helmet';
+import morgan from 'morgan';
 
 const app: Express = express();
 
-const PORT = envConfig.port || 3000;
+const PORT = env.PORT;
 
-
-app.use(morgan(envConfig.nodeEnv === 'development' ? 'dev' : 'combined'));
-app.use(helmet())
-app.use(cors())
+app.use(morgan(env.NODE_ENV === 'development' ? 'dev' : 'combined'));
+app.use(helmet());
+app.use(cors());
+app.use(cookieParser());
 app.use(express.json());
 
-app.get('/', (req, res) => {
-    res.status(200).json({ message: 'API is running' });
+app.get('/', async (req, res) => {
+  const user = new User({ username: 'Alice', email: 'alice@example.com' });
+  const saved = await user.save();
+  res.status(200).json({ message: 'API is running', saved });
 });
 
-const server = app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+const server = app.listen(PORT, async () => {
+  await connectDB();
+  console.log(`Server is running on port ${PORT}`);
 });
 
 // Handle graceful shutdown
 process.on('SIGINT', () => {
-    console.log('SIGINT: Shutting down server...');
-    server.close();
-    process.exit();
+  console.log('SIGINT: Shutting down server...');
+  server.close();
+  process.exit();
 });
 process.on('SIGTERM', () => {
-    console.log('SIGTERM: Shutting down server...');
-    server.close();
-    process.exit();
+  console.log('SIGTERM: Shutting down server...');
+  server.close();
+  process.exit();
 });
