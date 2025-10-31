@@ -1,6 +1,7 @@
 import connectDB from '#config/db.js';
 import { env } from '#config/index.js';
 import { User } from '#models/user.model.js';
+import authRouter from '#routes/auth.routes.js'
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import express, { Express } from 'express';
@@ -17,12 +18,14 @@ app.use(cors());
 app.use(cookieParser());
 app.use(express.json());
 
-app.get('/', async (req, res) => {
-  const user = new User({ username: 'Alice', email: 'alice@example.com' });
-  const saved = await user.save();
-  res.status(200).json({ message: 'API is running', saved });
-});
 
+app.get('/users',async (_req, res)=>{
+  const users = await User.find().select('-password');
+  res.status(200).json(users);
+})
+
+// Routers
+app.use('/auth', authRouter)
 const server = app.listen(PORT, async () => {
   await connectDB();
   console.log(`Server is running on port ${PORT}`);

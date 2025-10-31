@@ -1,4 +1,4 @@
-import z from 'zod';
+import { z } from 'zod';
 
 export const registerSchema = z.object({
   body: z.object({
@@ -8,12 +8,12 @@ export const registerSchema = z.object({
     password: z
       .string({ error: 'Password is required' })
       .min(8, { message: 'Password must be at least 8 characters long' })
-  })
+  }),
 });
 
 export const loginSchema = z.object({
   body: z.object({
     email: z.email({ error: 'Invalid email address' }).trim(),
     password: z.string({ error: 'Password is required' })
-  })
+  }),
 });
