@@ -1,12 +1,13 @@
 import { env } from '#config/index.js';
 import { User } from '#models/user.model.js';
+import { RegisterType } from '#types/index.js';
 import { clearAuthCookies, createJwt, setAuthCookie } from '#utils/auth.js';
 import { Request, Response } from 'express-serve-static-core';
 import { jwtVerify } from 'jose';
 
 export const register = async (req: Request, res: Response) => {
   try {
-    const { firstName, lastName, email, password } = req.body;
+    const { firstName, lastName, email, password } = req.body as RegisterType;
     const existingUser = await User.findOne({ email });
     if (existingUser) return res.status(400).json({ message: 'Email already registered' });
     const newUser = await User.create({ firstName, lastName, email, password });
