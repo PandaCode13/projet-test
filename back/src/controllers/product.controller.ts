@@ -36,3 +36,29 @@ export const getProducts = async (req: Request, res: Response) => {
     console.log('Error finding products', error);
   }
 };
+
+export const createProduct = async (req: Request, res: Response) => {
+  try {
+    const { name, barcode, brand, imageUrl, sugar, calories, caffeine } = req.body;
+    const productExists = await Product.findOne({ barcode });
+    if (productExists) {
+      return res.status(400).json({ message: 'Product with this barcode already exists' });
+    }
+    const newProduct = await Product.create({
+      name,
+      barcode,
+      brand: brand || '',
+      imageUrl: imageUrl || '',
+      sugar: sugar || 0,
+      calories: calories || 0,
+      caffeine: caffeine || 0
+    });
+    if (!newProduct) {
+      return res.status(500).json({ message: 'Error creating product' });
+    }
+    return res.status(201).json({ message: 'Product created successfully', productId: newProduct._id });
+  } catch (error) {
+    console.error('Error creating product: ', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
