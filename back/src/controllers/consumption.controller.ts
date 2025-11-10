@@ -30,3 +30,27 @@ export const addConsumption = async (req: AuthRequest, res: Response) => {
   }
   return res.status(201).json({ message: 'Consumption added successfully', consumptionId: newConsumption._id });
 };
+
+export const modifyConsumption = async (req: AuthRequest, res: Response) => {
+  const { consumptionId } = req.params;
+  const consumption = await Consumption.findById(consumptionId);
+  if (!consumption) {
+    return res.status(404).json({ message: 'Consumption not found' });
+  }
+  const isOwner = consumption?.contributorId.toString() === req.userId;
+  if (!isOwner) {
+    return res.status(403).json({ message: 'Forbidden' });
+  }
+  const { time, quantity, place, notes } = req.body;
+  consumption.time = time || consumption.time;
+  consumption.quantity = quantity || consumption.quantity;
+  consumption.place = place || consumption.place;
+  consumption.notes = notes || consumption.notes;
+  try {
+    await consumption.save();
+    return res.status(200).json({ message: 'Consumption updated successfully' });
+  } catch (error) {
+    console.error('Error updating consumption: ', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
