@@ -25,7 +25,7 @@ export const validate = (schema: ZodType) => async (req: Request, res: Response,
 
     // fallback for other errors
     res.status(500).json({
-      error: error.message || 'Internal server error'
+      error: (error as Error).message || 'Internal server error'
     });
   }
 };

@@ -1,40 +1,32 @@
+import { Consumption } from '#models/consumption.model.js';
 import { Product } from '#models/product.model.js';
-import { ProductsQueryType } from '#types/index.js';
-import { Request, Response } from 'express-serve-static-core';
+import { AuthRequest } from '#types/index.js';
+import { Response } from 'express-serve-static-core';
 
-export const findProducts = async (req: Request, res: Response) => {
-  try {
-    const { query, page, external } = req.query as ProductsQueryType;
-    const pageInt = page ? parseInt(page) : 1;
-    const limit = 20;
-    const skip = (pageInt - 1) * limit;
-    console.log('Products Request');
-    // find products in the database
-    const productsDb = await Product.find({
-      $or: [{ name: { $regex: query, $options: 'i' }, barcode: { $regex: query, $options: 'i' } }]
-    })
-      .skip(skip)
-      .limit(limit);
-    const total = await Product.countDocuments({
-      $or: [{ name: { $regex: query, $options: 'i' } }, { barcode: { $regex: query, $options: 'i' } }]
-    });
-    console.log(productsDb);
-    console.log(total);
-    if (productsDb.length > 0) {
-      console.log('Products Request DB');
-      return res.status(200).json({ results: productsDb, total, page: pageInt, totalPages: Math.ceil(total / limit) });
-    } else if (external || productsDb.length === 0) {
-      console.log('Products Request API');
-      // if no results, search external API and save to database
-      const productsApi = await fetch(
-        `https://fr.openfoodfacts.org/cgi/search.pl?search_terms=${query}&search_simple=1&action=process&json=1&fields=code,product_name,product_name_fr,brands,image_url,nutriments&page=${pageInt}`
-      );
-      const productsData = await productsApi.json();
-      return res.status(200).json(productsData);
-    }
-  } catch (error) {
-    console.log('Error finding products', error);
+export const addConsumption = async (req: AuthRequest, res: Response) => {
+  const { product, consumption } = req.body;
+  const newProduct = await Product.create({
+    name: product.name,
+    barcode: product.barcode,
+    brand: product.brand || '',
+    imageUrl: product.imageUrl || '',
+    sugar: product.sugar || 0,
+    calories: product.calories || 0,
+    caffeine: product.caffeine || 0
+  });
+  if (!newProduct) {
+    return res.status(500).json({ message: 'Error adding product' });
   }
+  const newConsumption = await Consumption.create({
+    contributorId: req.userId,
+    productId: newProduct._id,
+    date: consumption.date,
+    quantity: consumption.quantity,
+    place: consumption.place || '',
+    notes: consumption.notes || ''
+  });
+  if (!newConsumption) {
+    return res.status(500).json({ message: 'Error adding consumption' });
+  }
+  return res.status(201).json({ message: 'Consumption added successfully', consumptionId: newConsumption._id });
 };
-
-export const addConsumption = (req: Request, res: Response) => {};
