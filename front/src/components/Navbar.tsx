@@ -1,29 +1,42 @@
-import { CirclePlus, Menu, User, X } from "lucide-react";
+import { useAuth } from "@/lib/hooks";
+import {
+  ChartLine,
+  ChartNoAxesColumn,
+  CirclePlus,
+  List,
+  Menu,
+  User,
+  X,
+} from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const { user, logout } = useAuth();
   return (
     <nav className="bg-white w-full">
       <div className="px-6 py-4 flex justify-between items-center shadow-md">
-        <div className="flex items-baseline gap-4">
+        <div className="flex items-center gap-4">
           <Link className="text-2xl font-bold text-green-800" to="/">
             GlycAmed
           </Link>
           <ul className="hidden md:flex space-x-4 text-gray-700 font-medium">
             <li>
-              <Link className="hover:text-slate-900" to="/search-product">
+              <Link className="flex gap-2 hover:text-slate-900" to="/search">
+                <List />
                 Products
               </Link>
             </li>
             <li>
-              <Link className="hover:text-slate-900" to="/dashboard">
+              <Link className="flex gap-2 hover:text-slate-900" to="/dashboard">
+                <ChartNoAxesColumn />
                 Dashboard
               </Link>
             </li>
             <li>
-              <Link className="hover:text-slate-900" to="/analytics">
+              <Link className="flex gap-2 hover:text-slate-900" to="/analytics">
+                <ChartLine />
                 Analytics
               </Link>
             </li>
@@ -31,26 +44,40 @@ const Navbar = () => {
         </div>
         <ul className="hidden md:flex space-x-4 text-gray-700 font-medium">
           {/* Button to add consumption */}
-          <li>
-            <Link
-              className="flex gap-2 text-white hover:text-slate-900 bg-green-900 p-3 rounded-md"
-              to="/add-consumption"
-            >
-              <CirclePlus />
-              Add Consumption
-            </Link>
-          </li>
-          {/* Login button */}
-          <li>
-            <Link
-              className="flex gap-2 text-white hover:text-slate-900 bg-green-900 p-3 rounded-md"
-              to="/login"
-            >
-              <User />
-              Login
-            </Link>
-          </li>
-          {/* User Badge to logout */}
+
+          {user ? (
+            <>
+              <li>
+                <Link
+                  className="flex gap-2 text-white hover:text-gray-200 bg-green-800 hover:bg-green-900 p-3 rounded-md"
+                  to="/add-consumption"
+                >
+                  <CirclePlus />
+                  Add Consumption
+                </Link>
+              </li>
+              <li>
+                <Link
+                  className="flex gap-2 text-white hover:text-gray-200 bg-green-800 hover:bg-green-900 p-3 rounded-md"
+                  to="/"
+                  onClick={() => logout()}
+                >
+                  <User />
+                  Logout
+                </Link>
+              </li>
+            </>
+          ) : (
+            <li>
+              <Link
+                className="flex gap-2 text-white hover:text-gray-200 bg-green-800 hover:bg-green-900 p-3 rounded-md"
+                to="/login"
+              >
+                <User />
+                Login
+              </Link>
+            </li>
+          )}
         </ul>
         <button
           onClick={() => setIsOpen(!isOpen)}
@@ -68,7 +95,7 @@ const Navbar = () => {
             >
               {isOpen ? <X /> : <Menu />}
             </li>
-            <li>Add Consumption</li>
+            {user && <li>Add Consumption</li>}
             <li>
               <Link className="block hover:text-slate-900" to="/search-product">
                 Products
@@ -84,9 +111,17 @@ const Navbar = () => {
                 Analytics
               </Link>
             </li>
-            <li className="text-white bg-green-800 p-2 rounded w-full text-center">
-              <Link to="/login">Login</Link>
-            </li>
+            {user ? (
+              <li className="text-white bg-green-800 p-2 rounded w-full text-center">
+                <Link to="/" onClick={() => logout()}>
+                  Logout
+                </Link>
+              </li>
+            ) : (
+              <li className="text-white bg-green-800 p-2 rounded w-full text-center">
+                <Link to="/login">Login</Link>
+              </li>
+            )}
           </ul>
         </div>
       )}

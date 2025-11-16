@@ -2,7 +2,7 @@ import type { AuthContextValue, User } from "@/types";
 import { apiFetch } from "@/utils/api";
 import { createContext, useState, type ReactNode } from "react";
 
-const AuthContext = createContext<AuthContextValue | null>(null);
+export const AuthContext = createContext<AuthContextValue | null>(null);
 
 const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
