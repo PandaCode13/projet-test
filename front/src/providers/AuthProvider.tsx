@@ -1,12 +1,13 @@
+import { useAuthStore } from "@/lib/store";
 import type { AuthContextValue, User } from "@/types";
 import { apiFetch } from "@/utils/api";
-import { createContext, useState, type ReactNode } from "react";
+import { createContext, type ReactNode } from "react";
 import { useNavigate } from "react-router";
 
 export const AuthContext = createContext<AuthContextValue | null>(null);
 
 const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const user = useAuthStore((state) => state.user);
   const navigate = useNavigate();
   async function login({
     email,
@@ -20,13 +21,13 @@ const AuthProvider = ({ children }: { children: ReactNode }) => {
       body: JSON.stringify({ email, password }),
     })) as { user: User };
     console.log(res);
-    setUser(res.user);
+    useAuthStore.getState().setUser(res.user);
   }
 
   async function logout() {
     await apiFetch("/auth/logout", { method: "POST" });
     navigate("/");
-    setUser(null);
+    useAuthStore.getState().logout();
   }
 
   async function register({

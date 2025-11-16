@@ -3,9 +3,7 @@ export interface User {
   firstName: string;
   lastName: string;
   email: string;
-  password: string; // hashé
-  created_at: string;
-  updated_at: string;
+  password?: string; // hashé
 }
 
 export interface AuthContextValue {
