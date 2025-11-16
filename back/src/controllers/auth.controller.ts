@@ -33,7 +33,11 @@ export const login = async (req: Request, res: Response) => {
       createJwt(user._id.toString(), env.JWT_REFRESH_EXPIRES_IN, env.JWT_REFRESH_SECRET)
     ]);
     setAuthCookie(res, accessToken, refreshToken);
-    res.status(200).json({ message: 'Login successful' });
+    console.log(res.cookie);
+    res.status(200).json({
+      message: 'Login successful',
+      user: { id: user._id, firstName: user.firstName, lastName: user.lastName, email: user.email }
+    });
   } catch (error) {
     console.error('Error logging in user: ', error);
     res.status(500).json({ message: 'Internal server error' });

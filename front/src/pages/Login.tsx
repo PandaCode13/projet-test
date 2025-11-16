@@ -8,9 +8,12 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { useAuth } from "@/lib/hooks";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
+import { toast } from "sonner";
 import z from "zod";
 
 const loginFormSchema = z.object({
@@ -27,8 +30,20 @@ const Login = () => {
       password: "",
     },
   });
+  const navigate = useNavigate();
+  const { login } = useAuth();
+  const mutation = useMutation({
+    mutationKey: ["login"],
+    mutationFn: login,
+    onSuccess: () => {
+      navigate("/");
+    },
+    onError: () => {
+      toast.error("Login failed. Please try again.");
+    },
+  });
   const onSubmit = (data: z.infer<typeof loginFormSchema>) => {
-    console.log(data);
+    mutation.mutate(data);
   };
   return (
     <div className="flex flex-col items-center">

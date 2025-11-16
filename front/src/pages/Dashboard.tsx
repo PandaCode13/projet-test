@@ -9,6 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { MOCK_DATA as data } from "@/utils/data";
+import { useQueries } from "@tanstack/react-query";
 import { AlertTriangle, Coffee, Droplet, Trophy } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -23,6 +24,20 @@ import {
 } from "recharts";
 
 const Dashboard = () => {
+  // Data to get
+  const queries = useQueries({
+    queries: [],
+  });
+
+  // - Today's sugar, caffeine, calories (value)
+  // - Sugar by day (last 7 days)
+  // - Caffeine by time (today)
+  // - Avg sugar/day (last 30 days)
+  // - Avg caffeine/day (last 30 days)
+  // - Most consumed product (last 30 days)
+  // - Top sugar contributor (product with most sugar)
+  // - Alert history (dates when limits were exceeded)
+
   return (
     <div className="flex flex-col gap-6">
       {/* Gauges */}

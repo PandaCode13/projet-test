@@ -14,6 +14,7 @@ import { Link } from "react-router";
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const { user, logout } = useAuth();
+  console.log("Navbar user:", user);
   return (
     <nav className="bg-white w-full">
       <div className="px-6 py-4 flex justify-between items-center shadow-md">

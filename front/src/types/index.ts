@@ -10,12 +10,23 @@ export interface User {
 
 export interface AuthContextValue {
   user: User | null;
-  login: (email: string, password: string) => Promise<void>;
+  login: ({
+    email,
+    password,
+  }: {
+    email: string;
+    password: string;
+  }) => Promise<void>;
   logout: () => Promise<void>;
-  register: (
-    firstName: string,
-    lastName: string,
-    email: string,
-    password: string
-  ) => Promise<void>;
+  register: ({
+    firstName,
+    lastName,
+    email,
+    password,
+  }: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    password: string;
+  }) => Promise<void>;
 }

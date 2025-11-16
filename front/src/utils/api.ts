@@ -1,9 +1,13 @@
-const API_URL = "/api";
+const API_URL =
+  import.meta.env.VITE_NODE_ENV === "production"
+    ? "/api"
+    : "http://localhost:3000/api";
 
 export async function apiFetch(
   path: string,
   options: RequestInit = {}
 ): Promise<unknown> {
+  console.log(API_URL);
   const res = await fetch(`${API_URL}${path}`, {
     credentials: "include",
     headers: {

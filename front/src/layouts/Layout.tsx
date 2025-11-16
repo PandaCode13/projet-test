@@ -1,5 +1,6 @@
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
+import { Toaster } from "@/components/ui/sonner";
 import { Outlet } from "react-router";
 
 const Layout = () => {
@@ -14,6 +15,7 @@ const Layout = () => {
       <footer className="bg-green-900 text-gray-200 py-8">
         <Footer />
       </footer>
+      <Toaster />
     </div>
   );
 };

@@ -9,9 +9,20 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import { useQuery } from "@tanstack/react-query";
 
 const Home = () => {
   // TODO: Fetch and display consumption timeline data
+
+  const {} = useQuery({
+    queryKey: ["recentConsumptions"],
+    queryFn: async () => {
+      // Replace with actual API call
+      // const response = await apiFetch('/api/consumptions/recent');
+      // return response as ConsumptionItem[];
+      return [];
+    }
+  })
   type ConsumptionItem = {
     id: number;
     product: string;

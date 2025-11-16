@@ -8,9 +8,12 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { useAuth } from "@/lib/hooks";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
+import { toast } from "sonner";
 import z from "zod";
 
 const signupFormSchema = z
@@ -25,7 +28,7 @@ const signupFormSchema = z
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords do not match",
-    path: ["confirmPassword"], 
+    path: ["confirmPassword"],
   });
 
 const Signup = () => {
@@ -40,8 +43,26 @@ const Signup = () => {
       confirmPassword: "",
     },
   });
+  const navigate = useNavigate();
+  const { register } = useAuth();
+  const mutation = useMutation({
+    mutationKey: ["register"],
+    mutationFn: register,
+    onSuccess: () => {
+      navigate("/");
+    },
+    onError: () => {
+      toast.error("Registration failed. Please try again.");
+    },
+  });
+
   const onSubmit = (data: z.infer<typeof signupFormSchema>) => {
-    console.log(data);
+    mutation.mutate({
+      firstName: data.firstname,
+      lastName: data.lastname,
+      email: data.email,
+      password: data.password,
+    });
   };
   return (
     <div className="flex flex-col items-center">
@@ -124,7 +145,7 @@ const Signup = () => {
             className="w-full text-white bg-green-800 hover:bg-green-700"
             type="submit"
           >
-            Login
+            Register
           </Button>
         </form>
       </Form>

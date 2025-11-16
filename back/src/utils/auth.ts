@@ -16,13 +16,13 @@ export const setAuthCookie = (res: Response, accessToken: string, refreshToken: 
     httpOnly: true,
     maxAge: parseInt(env.ACCESS_TOKEN_COOKIE_MAX_AGE),
     secure: isProd,
-    sameSite: 'lax'
+    sameSite: 'none'
   });
   res.cookie(env.REFRESH_TOKEN_COOKIE_NAME, refreshToken, {
     httpOnly: true,
     maxAge: parseInt(env.REFRESH_TOKEN_COOKIE_MAX_AGE),
     secure: isProd,
-    sameSite: 'lax'
+    sameSite: 'none'
   });
 };
 
