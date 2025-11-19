@@ -70,7 +70,7 @@ const AddConsumption = () => {
                   If you don't see your product, use the{" "}
                   <Link
                     className="underline text-blue-800"
-                    to="/search-product"
+                    to="/search"
                   >
                     products search page
                   </Link>

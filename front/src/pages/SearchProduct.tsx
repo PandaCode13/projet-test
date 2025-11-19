@@ -18,12 +18,16 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { Skeleton } from "@/components/ui/skeleton";
+import { getPaginationRange } from "@/lib/pagination";
+import { cn } from "@/lib/utils";
+import type { ProductsResponse } from "@/types";
 import { apiFetch } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery } from "@tanstack/react-query";
-import { Clock, LoaderCircle, MapPin, Search } from "lucide-react";
+import { CirclePlus, LoaderCircle, Search } from "lucide-react";
+import { useMemo, useRef } from "react";
 import { useForm } from "react-hook-form";
-import { useSearchParams } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import z from "zod";
 
 const searchParamsSchema = z.object({
@@ -34,35 +38,18 @@ const searchParamsSchema = z.object({
     .transform((v) => v === "true")
     .optional(),
 });
+export type SearchParams = z.infer<typeof searchParamsSchema>;
+
 const searchFormSchema = z.object({
   query: z.string().min(1, "Query is required"),
 });
 const SearchProduct = () => {
-  type ConsumptionItem = {
-    id: number;
-    product: string;
-    sugar: number;
-    caffeine: number;
-    calories: number;
-    time: string;
-    location: string;
-  };
-
-  const items: ConsumptionItem[] = Array.from({ length: 5 }, (_, i) => ({
-    id: i,
-    product: "Redbull 250ml",
-    sugar: 27,
-    caffeine: 80,
-    calories: 110,
-    time: "3:00 PM",
-    location: "Kitchen",
-  }));
-
+  const pageSize = 50;
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const paramsObj = Object.fromEntries(searchParams.entries());
   const result = searchParamsSchema.safeParse(paramsObj);
   const params = result.success ? result.data : searchParamsSchema.parse({});
-  // const [data, setData] = useState([]);
 
   const form = useForm<z.infer<typeof searchFormSchema>>({
     resolver: zodResolver(searchFormSchema),
@@ -75,36 +62,39 @@ const SearchProduct = () => {
     setSearchParams({ query: data.query });
   };
   // fetch results based on query
-  const { data, isLoading } = useQuery({
+  const { data, isLoading } = useQuery<ProductsResponse>({
     queryKey: ["searchProducts", params],
+    enabled: !!params.query,
     queryFn: async () => {
-      const { query, page, external } = params;
+      const { query, page } = params;
       const queryString = new URLSearchParams({
         query: query || "",
         page: page.toString(),
-        external: external ? "true" : "false",
+        external: "true",
       }).toString();
       console.log("Fetching with params:", queryString);
-      const data = await apiFetch(`/api/products?${queryString}`);
-      return Array.isArray(data) ? data : [];
+      const data = (await apiFetch(
+        `/products?${queryString}`
+      )) as ProductsResponse;
+      console.log(data);
+      return data;
     },
   });
 
-  // useEffect(() => {
-  //   async function fetchResults() {
-  //     const { query, page, external } = params;
-  //     const queryString = new URLSearchParams({
-  //       query: query || "",
-  //       page: page.toString(),
-  //       external: external ? "true" : "false",
-  //     }).toString();
+  const count = data?.count ?? 0;
+  const size = data?.page_size ?? pageSize;
+  const memoRuns = useRef(0);
+  const totalPages = useMemo(() => {
+    memoRuns.current += 1;
+    console.count("totalPages useMemo ran");
+    return Math.max(1, Math.ceil(count / Math.max(1, size)));
+  }, [count, size]);
 
-  //     const response = await apiFetch(`/api/products?${queryString}`);
-  //     const dataJson = await (response as Response).json();
-  //     setData(Array.isArray(dataJson) ? dataJson : []);
-  //   }
-  //   fetchResults();
-  // }, [params]);
+  const paginationRange = useMemo(
+    () => getPaginationRange(params.page, totalPages, 1),
+    [params.page, totalPages]
+  );
+  console.log(paginationRange);
   return (
     <div className="flex flex-col items-center">
       <h1 className="text-2xl">Search a Product</h1>
@@ -146,37 +136,47 @@ const SearchProduct = () => {
             </div>
           )}
           <ul className="divide-y divide-gray-200 dark:divide-gray-800">
-            {items.map((item) => (
+            {data?.products.map((item, index) => (
               <li
-                key={item.id}
+                key={item.code + index}
                 className="flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-900"
               >
                 <div className="flex items-center space-x-4">
                   <div className="shrink-0 w-20 h-20 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
                     <img
                       className="h-20 w-20 rounded-full object-cover object-center ring-2 shadow-sm"
-                      src="https://images.openfoodfacts.org/images/products/900/249/021/5408/front_sv.19.full.jpg"
-                      alt="Redbull 250ml"
+                      src={
+                        item.image_url
+                          ? item.image_url
+                          : "https://placehold.co/400"
+                      }
+                      alt={item.product_name}
                     />
                   </div>
                   <div>
-                    <p className="text-sm font-semibold">{item.product}</p>
+                    <p className="text-sm font-semibold">
+                      {item.product_name
+                        ? item.product_name
+                        : item.product_name_fr}
+                    </p>
+                    <p className="text-xs font-semibold">{item.code}</p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {item.sugar}g Sug, {item.caffeine}mg Caf, {item.calories}{" "}
-                      kCal
+                      {item.nutriments.sugars
+                        ? `Sugar ${item.nutriments.sugars}g, `
+                        : ""}
+                      {item.nutriments.caffeine
+                        ? `Caffeine ${item.nutriments.caffeine}g, `
+                        : ""}
+                      {item.nutriments["energy-kcal_value"]
+                        ? `Energy ${item.nutriments["energy-kcal_value"]}kCal`
+                        : ""}
                     </p>
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="text-sm font-medium flex items-center justify-end">
-                    <Clock className="h-3 w-3 mr-1.5" />
-                    {item.time}
-                  </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center justify-end">
-                    <MapPin className="h-3 w-3 mr-1.5" />
-                    {item.location}
-                  </div>
-                </div>
+                <Button className="flex gap-2 cursor-pointer items-center bg-green-800 hover:bg-green-900 text-white" onClick={()=>navigate(`/add-consumption?product_code=${item.code}`)}>
+                  <CirclePlus />
+                  <p className="hidden sm:block">Add product</p>
+                </Button>
               </li>
             ))}
           </ul>
@@ -187,33 +187,54 @@ const SearchProduct = () => {
         <PaginationContent>
           <PaginationItem>
             <PaginationPrevious
-              href="#"
-              className="bg-green-800 text-white hover:bg-green-900 hover:text-gray-200"
+              className={cn(
+                params.page === 1 && "opacity-50 pointer-events-none",
+                "bg-green-800 text-white cursor-pointer hover:bg-green-900 hover:text-gray-200"
+              )}
+              onClick={() =>
+                setSearchParams({
+                  ...Object.fromEntries(searchParams),
+                  page: String(params.page - 1),
+                })
+              }
             />
           </PaginationItem>
-          <PaginationItem>
-            <PaginationLink
-              className="bg-green-800 text-white hover:bg-green-900 hover:text-gray-200"
-              href="#"
-            >
-              1
-            </PaginationLink>
-          </PaginationItem>
-          <PaginationItem>
-            <PaginationLink
-              className="bg-green-800 text-white hover:bg-green-900 hover:text-gray-200"
-              href="#"
-            >
-              2
-            </PaginationLink>
-          </PaginationItem>
-          <PaginationItem>
-            <PaginationEllipsis />
-          </PaginationItem>
+          {paginationRange.map((p, i) => (
+            <PaginationItem key={`${p}-${i}`}>
+              {p === "..." ? (
+                <PaginationEllipsis />
+              ) : (
+                <PaginationLink
+                  className={cn(
+                    "bg-green-800 text-white hover:bg-green-900 hover:text-gray-200 cursor-pointer",
+                    p === params.page &&
+                      "pointer-events-none bg-white text-black"
+                  )}
+                  onClick={() =>
+                    setSearchParams({
+                      ...Object.fromEntries(searchParams),
+                      page: String(p),
+                    })
+                  }
+                  isActive={p === params.page}
+                >
+                  {p}
+                </PaginationLink>
+              )}
+            </PaginationItem>
+          ))}
           <PaginationItem>
             <PaginationNext
-              href="#"
-              className="bg-green-800 text-white hover:bg-green-900 hover:text-gray-200"
+              onClick={() =>
+                setSearchParams({
+                  ...Object.fromEntries(searchParams),
+                  page: String(params.page + 1),
+                })
+              }
+              className={cn(
+                params.page === totalPages && "opacity-50 pointer-events-none",
+                "bg-green-800 cursor-pointer text-white hover:bg-green-900 hover:text-gray-200"
+              )}
             />
           </PaginationItem>
         </PaginationContent>

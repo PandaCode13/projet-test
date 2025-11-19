@@ -5,7 +5,7 @@ import { Router } from 'express';
 
 const router = Router();
 
-router.get('/products', getProducts);
-router.post('/products', validate(createProductSchema), createProduct);
+router.get('/', getProducts);
+router.post('/', validate(createProductSchema), createProduct);
 
 export default router;

@@ -28,3 +28,26 @@ export interface AuthContextValue {
     password: string;
   }) => Promise<void>;
 }
+
+export interface ProductsResponse {
+  count: number
+  page: number
+  page_count: number
+  page_size: number
+  products: Product[]
+  skip: number
+}
+
+export interface Product {
+  brands: string
+  code: string
+  image_url: string
+  nutriments: {
+    "energy-kcal_value"?: number
+    sugars?: number
+    caffeine?:number
+  }
+  product_name: string
+  product_name_fr?: string
+}
+

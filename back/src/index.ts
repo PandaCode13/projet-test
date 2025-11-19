@@ -1,6 +1,7 @@
 import connectDB from '#config/db.js';
 import { env } from '#config/index.js';
 import authRouter from '#routes/auth.routes.js';
+import productRouter from '#routes/product.routes.js';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import express, { Express } from 'express';
@@ -19,6 +20,7 @@ app.use(express.json());
 
 // Routers
 app.use('/api/auth', authRouter);
+app.use('/api/products', productRouter)
 const server = app.listen(PORT, async () => {
   await connectDB();
   console.log(`Server is running on port ${PORT}`);
