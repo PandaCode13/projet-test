@@ -126,3 +126,67 @@ export interface AlertHistory {
   date: string
   exceeded: string[]
 }
+
+export interface AnalyticResponse {
+  topProducts: TopProduct[]
+  topNutrients: TopNutrient[]
+  topContributors: TopContributor[]
+  dailySummary: DailySummary[]
+  exceededDays: ExceededDay[]
+  trend: Trend[]
+}
+
+export interface TopProduct {
+  _id: string
+  name: string
+  count: number
+}
+
+export interface TopNutrient {
+  topSugar: TopSugar[]
+  remainingSugarPercentage: number
+  topCaffeine: TopCaffeine[]
+  remainingCaffeinePercentage: number
+  topCalories: TopCalory[]
+  remainingCaloriesPercentage: number
+}
+
+export interface TopSugar {
+  name: string
+  value: number
+  percentage: number
+}
+
+export interface TopCaffeine {
+  name: string
+  value: number
+  percentage: number
+}
+
+export interface TopCalory {
+  name: string
+  value: number
+  percentage: number
+}
+
+export interface TopContributor {
+  _id: string
+  totalContributions: number
+  name: string
+}
+
+export interface DailySummary {
+  _id: string
+  avgSugar: number
+  avgCaffeine: number
+}
+
+export interface ExceededDay {
+  numExceededDays: number
+}
+
+export interface Trend {
+  _id: string
+  sugarTrend: string
+  caffeineTrend: string
+}

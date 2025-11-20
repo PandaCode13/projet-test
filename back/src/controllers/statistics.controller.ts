@@ -39,25 +39,16 @@ export const dashboardStatistics = async (_req: Request, res: Response) => {
     const todayEnd = endOfDay(new Date());
 
     const caffeineEvolution = await Consumption.aggregate([
-      // 1️⃣ Filter only today's consumptions
       { $match: { time: { $gte: todayStart, $lte: todayEnd } } },
-
-      // 2️⃣ Join product data
       { $lookup: { from: "products", localField: "product", foreignField: "_id", as: "product" } },
       { $unwind: "$product" },
-
-      // 3️⃣ Group by hour of day
       {
         $group: {
           _id: { $hour: "$time" },
           caffeine: { $sum: { $multiply: ["$product.caffeine", "$quantity"] } }
         }
       },
-
-      // 4️⃣ Sort by hour ascending
       { $sort: { "_id": 1 } },
-
-      // 5️⃣ Compute cumulative sum using $setWindowFields
       {
         $setWindowFields: {
           sortBy: { "_id": 1 },
@@ -71,8 +62,6 @@ export const dashboardStatistics = async (_req: Request, res: Response) => {
           }
         }
       },
-
-      // 6️⃣ Project final fields
       {
         $project: {
           _id: 0,
@@ -178,14 +167,9 @@ export const dashboardStatistics = async (_req: Request, res: Response) => {
     ]);
     // get Alert history (dates when limits were exceeded)
     const alertHistory = await Consumption.aggregate([
-      // 1️⃣ Filter last 30 days
       { $match: { time: { $gte: last30 } } },
-
-      // 2️⃣ Join product data
       { $lookup: { from: "products", localField: "product", foreignField: "_id", as: "product" } },
       { $unwind: "$product" },
-
-      // 3️⃣ Group by day, sum sugar, caffeine, calories
       {
         $group: {
           _id: { $dateToString: { format: "%Y-%m-%d", date: "$time" } },
@@ -194,8 +178,6 @@ export const dashboardStatistics = async (_req: Request, res: Response) => {
           totalCalories: { $sum: { $multiply: ["$product.calories", "$quantity"] } }
         }
       },
-
-      // 4️⃣ Keep only days exceeding any threshold
       {
         $match: {
           $or: [
@@ -205,8 +187,6 @@ export const dashboardStatistics = async (_req: Request, res: Response) => {
           ]
         }
       },
-
-      // 5️⃣ Project only date and exceeded nutrients
       {
         $project: {
           _id: 0,
@@ -221,7 +201,6 @@ export const dashboardStatistics = async (_req: Request, res: Response) => {
         }
       },
       { $limit: 8 },
-      // 6️⃣ Sort by date ascending
       { $sort: { date: -1 } }
     ]);
 
@@ -240,66 +219,344 @@ export const dashboardStatistics = async (_req: Request, res: Response) => {
     return res.status(500).json({ message: 'Internal server error' });
   }
 }
-
-export const getStatistics = async (req: Request, res: Response) => {
+export const getAnalytics = async (_req: Request, res: Response) => {
   try {
-    const { limit } = req.query;
-    const statistics = await Statistics.find()
-      .sort({ date: -1 })
-      .limit(limit ? parseInt(limit as string) : 7);
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    thirtyDaysAgo.setHours(0, 0, 0, 0);
 
-    return res.status(200).json(statistics);
-  } catch (error) {
-    console.error('Error fetching statistics: ', error);
-    return res.status(500).json({ message: 'Internal server error' });
-  }
-};
+    // 1️⃣ Get all consumptions for the last 30 days with product and user info
+    const consumptions = await Consumption.aggregate([
+      { $match: { time: { $gte: thirtyDaysAgo } } },
+      { $lookup: { from: "products", localField: "product", foreignField: "_id", as: "product" } },
+      { $unwind: "$product" },
 
-export const averageStatistics = async (_req: Request, res: Response) => {
-  try {
-    const result = await Statistics.aggregate([
+      // 3️⃣ Project fields needed
       {
-        $group: {
-          _id: null,
-          avgSugar: { $avg: '$totalSugar' },
-          avgCaffeine: { $avg: '$totalCaffeine' },
-          avgCalories: { $avg: '$totalCalories' },
-          avgConsumptions: { $avg: '$totalConsumptions' }
+        $project: {
+          productId: "$product._id",
+          productName: "$product.name",
+          contributorId: 1,
+          sugar: { $multiply: ["$product.sugar", "$quantity"] },
+          caffeine: { $multiply: ["$product.caffeine", "$quantity"] },
+          calories: { $multiply: ["$product.calories", "$quantity"] },
+          date: { $dateToString: { format: "%Y-%m-%d", date: "$time" } }
+        }
+      },
+
+      // 3️⃣ Facet to compute multiple metrics in parallel
+      {
+        $facet: {
+          // Top 10 consumed products by count
+          topProducts: [
+            { $group: { _id: "$productId", name: { $first: "$productName" }, count: { $sum: 1 } } },
+            { $sort: { count: -1 } },
+            { $limit: 10 }
+          ],
+
+          // Top products by sugar, caffeine, calories
+          topNutrients: [
+            {
+              $group: {
+                _id: "$productId",
+                name: { $first: "$productName" },
+                totalSugar: { $sum: "$sugar" },
+                totalCaffeine: { $sum: "$caffeine" },
+                totalCalories: { $sum: "$calories" }
+              }
+            },
+            {
+              $group: {
+                _id: null,
+                products: {
+                  $push: {
+                    name: "$name",
+                    sugar: "$totalSugar",
+                    caffeine: "$totalCaffeine",
+                    calories: "$totalCalories"
+                  }
+                }
+              }
+            },
+            {
+              $project: {
+                _id: 0,
+                totalSugar: { $sum: "$products.sugar" },
+                totalCaffeine: { $sum: "$products.caffeine" },
+                totalCalories: { $sum: "$products.calories" },
+                products: 1
+              }
+            },
+            {
+              $project: {
+                topSugar: {
+                  $slice: [
+                    {
+                      $map: {
+                        input: { $sortArray: { input: "$products", sortBy: { sugar: -1 } } },
+                        as: "p",
+                        in: {
+                          name: "$$p.name",
+                          value: "$$p.sugar",
+                          percentage: {
+                            $cond: [
+                              { $eq: ["$totalSugar", 0] },
+                              0,
+                              { $multiply: [{ $divide: ["$$p.sugar", "$totalSugar"] }, 100] }
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    4
+                  ]
+                },
+
+                remainingSugarPercentage: {
+                  $let: {
+                    vars: {
+                      topFour: {
+                        $slice: [
+                          {
+                            $sortArray: { input: "$products", sortBy: { sugar: -1 } }
+                          },
+                          4
+                        ]
+                      }
+                    },
+                    in: {
+                      $cond: [
+                        { $eq: ["$totalSugar", 0] },
+                        0,
+                        {
+                          $multiply: [
+                            {
+                              $divide: [
+                                {
+                                  $subtract: [
+                                    "$totalSugar",
+                                    { $sum: "$$topFour.sugar" }
+                                  ]
+                                },
+                                "$totalSugar"
+                              ]
+                            },
+                            100
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                },
+                topCaffeine: {
+                  $slice: [
+                    {
+                      $map: {
+                        input: { $sortArray: { input: "$products", sortBy: { caffeine: -1 } } },
+                        as: "p",
+                        in: {
+                          name: "$$p.name",
+                          value: "$$p.caffeine",
+                          percentage: {
+                            $cond: [
+                              { $eq: ["$totalCaffeine", 0] },
+                              0,
+                              { $multiply: [{ $divide: ["$$p.caffeine", "$totalCaffeine"] }, 100] }
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    4
+                  ]
+                },
+
+                remainingCaffeinePercentage: {
+                  $let: {
+                    vars: {
+                      topFour: {
+                        $slice: [
+                          {
+                            $sortArray: { input: "$products", sortBy: { caffeine: -1 } }
+                          },
+                          4
+                        ]
+                      }
+                    },
+                    in: {
+                      $cond: [
+                        { $eq: ["$totalCaffeine", 0] },
+                        0,
+                        {
+                          $multiply: [
+                            {
+                              $divide: [
+                                {
+                                  $subtract: [
+                                    "$totalCaffeine",
+                                    { $sum: "$$topFour.caffeine" }
+                                  ]
+                                },
+                                "$totalCaffeine"
+                              ]
+                            },
+                            100
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                },
+                topCalories: {
+                  $slice: [
+                    {
+                      $map: {
+                        input: { $sortArray: { input: "$products", sortBy: { calories: -1 } } },
+                        as: "p",
+                        in: {
+                          name: "$$p.name",
+                          value: "$$p.calories",
+                          percentage: {
+                            $cond: [
+                              { $eq: ["$totalCalories", 0] },
+                              0,
+                              { $multiply: [{ $divide: ["$$p.calories", "$totalCalories"] }, 100] }
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    4
+                  ]
+                },
+
+                remainingCaloriesPercentage: {
+                  $let: {
+                    vars: {
+                      topFour: {
+                        $slice: [
+                          {
+                            $sortArray: { input: "$products", sortBy: { calories: -1 } }
+                          },
+                          4
+                        ]
+                      }
+                    },
+                    in: {
+                      $cond: [
+                        { $eq: ["$totalCalories", 0] },
+                        0,
+                        {
+                          $multiply: [
+                            {
+                              $divide: [
+                                {
+                                  $subtract: [
+                                    "$totalCalories",
+                                    { $sum: "$$topFour.calories" }
+                                  ]
+                                },
+                                "$totalCalories"
+                              ]
+                            },
+                            100
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          ],
+
+          // Top contributors by total intake
+          topContributors: [
+            { $lookup: { from: "users", localField: "contributorId", foreignField: "_id", as: "user" } },
+            { $unwind: "$user" },
+            {
+              $group: {
+                _id: "$contributorId",
+                firstName: { $first: "$user.firstName" },
+                lastName: { $first: "$user.lastName" },
+                totalContributions: { $sum: 1 }
+              }
+            },
+            {
+              $project: {
+                _id: 1,
+                name: { $concat: ["$firstName", " ", "$lastName"] },
+                totalContributions: 1
+              }
+            },
+            { $sort: { totalContributions: -1 } },
+            { $limit: 10 }
+          ],
+
+          // Daily summary averages
+          dailySummary: [
+            { $group: { _id: "$date", dailySugar: { $sum: "$sugar" }, dailyCaffeine: { $sum: "$caffeine" } } },
+            {
+              $group: {
+                _id: null,
+                avgSugar: { $avg: "$dailySugar" },
+                avgCaffeine: { $avg: "$dailyCaffeine" },
+              }
+            }
+          ],
+
+          // Days exceeding thresholds
+          exceededDays: [
+            { $group: { _id: "$date", totalSugar: { $sum: "$sugar" }, totalCaffeine: { $sum: "$caffeine" }, totalCalories: { $sum: "$calories" } } },
+            {
+              $match: {
+                $or: [
+                  { totalSugar: { $gt: THRESHOLD_SUGAR } },
+                  { totalCaffeine: { $gt: THRESHOLD_CAFFEINE } },
+                  { totalCalories: { $gt: THRESHOLD_CALORIES } }
+                ]
+              }
+            },
+            { $count: "numExceededDays" }
+          ],
+
+          // Overall trend (compare first 15 days vs last 15 days)
+          trend: [
+            { $group: { _id: "$date", dailySugar: { $sum: "$sugar" }, dailyCaffeine: { $sum: "$caffeine" } } },
+            { $sort: { _id: 1 } },
+            {
+              $group: {
+                _id: null,
+                dates: { $push: "$_id" },
+                sugarValues: { $push: "$dailySugar" },
+                caffeineValues: { $push: "$dailyCaffeine" }
+              }
+            },
+            {
+              $project: {
+                sugarFirstHalf: { $slice: ["$sugarValues", 0, 15] },
+                sugarSecondHalf: { $slice: ["$sugarValues", 15, 15] },
+                caffeineFirstHalf: { $slice: ["$caffeineValues", 0, 15] },
+                caffeineSecondHalf: { $slice: ["$caffeineValues", 15, 15] }
+              }
+            },
+            {
+              $project: {
+                sugarTrend: { $cond: [{ $gt: [{ $avg: "$sugarSecondHalf" }, { $avg: "$sugarFirstHalf" }] }, "increasing", "decreasing"] },
+                caffeineTrend: { $cond: [{ $gt: [{ $avg: "$caffeineSecondHalf" }, { $avg: "$caffeineFirstHalf" }] }, "increasing", "decreasing"] }
+              }
+            }
+          ]
         }
       }
     ]);
 
-    const averages = result[0] || {
-      avgSugar: 0,
-      avgCaffeine: 0,
-      avgCalories: 0,
-      avgConsumptions: 0
-    };
-    return res.status(200).json(averages);
+    return res.status(200).json(consumptions[0]);
   } catch (error) {
-    console.error('Error fetching average statistics: ', error);
+    console.error('Error fetching analytics data: ', error);
     return res.status(500).json({ message: 'Internal server error' });
   }
-};
-
-
-
-export const getExceedingDaysCount = async (_req: Request, res: Response) => {
-  try {
-    const count = await Statistics.countDocuments({
-      $or: [
-        { totalSugar: { $gt: THRESHOLD_SUGAR } },
-        { totalCaffeine: { $gt: THRESHOLD_CAFFEINE } },
-        { totalCalories: { $gt: THRESHOLD_CALORIES } }
-      ]
-    });
-
-    return res.status(200).json({ exceedingDaysCount: count });
-  } catch (error) {
-    console.error('Error fetching exceeding days count: ', error);
-    return res.status(500).json({ message: 'Internal server error' });
-  }
-};
+}
 
 export const getMostActiveContributor = async (_req: Request, res: Response) => {
   try {

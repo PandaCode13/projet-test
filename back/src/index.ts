@@ -24,7 +24,7 @@ app.use(express.json());
 app.use('/api/auth', authRouter);
 app.use('/api/products', productRouter)
 app.use('/api/consumptions', consumptionRouter)
-app.use('/api/dashboard', statisticsRouter)
+app.use('/api', statisticsRouter)
 const server = app.listen(PORT, async () => {
   await connectDB();
   console.log(`Server is running on port ${PORT}`);

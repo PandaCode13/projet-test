@@ -1,5 +1,4 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { Clock, LoaderCircle, MapPin } from "lucide-react";
 import {
   Pagination,
   PaginationContent,
@@ -9,16 +8,17 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { useQuery } from "@tanstack/react-query";
+import { Skeleton } from "@/components/ui/skeleton";
+import { getPaginationRange } from "@/lib/pagination";
+import { cn } from "@/lib/utils";
 import { apiFetch } from "@/utils/api";
+import { KJTOKCAL } from "@/utils/data";
+import { useQuery } from "@tanstack/react-query";
+import { format } from "date-fns";
+import { Clock, LoaderCircle, MapPin } from "lucide-react";
+import { useMemo } from "react";
 import { useSearchParams } from "react-router";
 import z from "zod";
-import { KJTOKCAL } from "@/utils/data";
-import { format } from "date-fns";
-import { Skeleton } from "@/components/ui/skeleton";
-import { cn } from "@/lib/utils";
-import { getPaginationRange } from "@/lib/pagination";
-import { useMemo } from "react";
 
 export interface ConsumptionsResponse {
   results: Consumption[];

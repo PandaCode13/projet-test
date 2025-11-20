@@ -1,43 +1,42 @@
-import { MOCK_DATA as data } from "@/utils/data";
+import TrendIcon from "@/components/TrendIcon";
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
-  CardDescription,
 } from "@/components/ui/card";
-import { TrendingUp, TrendingDown, Minus, User } from "lucide-react";
+import type { AnalyticResponse } from "@/types";
+import { apiFetch } from "@/utils/api";
+import { useQuery } from "@tanstack/react-query";
+import { LoaderCircle, User } from "lucide-react";
+import TopContributionsList from "./TopContributionsList";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const Analytics = () => {
-  const TrendIcon =
-    data.analytics.summary.trend === "increasing" ? (
-      <TrendingUp className="h-5 w-5 text-red-500" />
-    ) : data.analytics.summary.trend === "decreasing" ? (
-      <TrendingDown className="h-5 w-5 text-green-500" />
-    ) : (
-      <Minus className="h-5 w-5 text-gray-500" />
+  const { data, isLoading } = useQuery<AnalyticResponse>({
+    queryKey: ["analytics"],
+    queryFn: async () => {
+      const response = (await apiFetch("/analytics")) as AnalyticResponse;
+      return response;
+    },
+  });
+  const sugarTrendText = data?.trend?.[0]?.sugarTrend
+    ? data.trend[0].sugarTrend.charAt(0).toUpperCase() +
+      data.trend[0].sugarTrend.slice(1)
+    : "";
+  const caffeineTrendText = data?.trend?.[0]?.sugarTrend
+    ? data.trend[0].caffeineTrend.charAt(0).toUpperCase() +
+      data.trend[0].caffeineTrend.slice(1)
+    : "";
+  if (isLoading) {
+    return (
+      <div className="relative">
+        <Skeleton className="h-16 w-full rounded flex items-center justify-center animate-pulse" />
+        <LoaderCircle className="absolute inset-0 m-auto h-8 w-8 text-muted-foreground opacity-40 animate-spin" />
+      </div>
     );
-
-  const TrendText =
-    data.analytics.summary.trend.charAt(0).toUpperCase() +
-    data.analytics.summary.trend.slice(1);
-
-  const TopContributorList = ({ title, items }) => (
-    <div>
-      <h4 className="font-semibold mb-2">{title}</h4>
-      <ul className="space-y-1">
-        {items.slice(0, 5).map((item) => (
-          <li key={item.name} className="flex justify-between text-sm">
-            <span>{item.name}</span>
-            <span className="font-medium text-gray-600 dark:text-gray-400">
-              {item.percentage}%
-            </span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-
+  }
   return (
     <div>
       <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -50,7 +49,7 @@ const Analytics = () => {
           </CardHeader>
           <CardContent>
             <ol className="space-y-2">
-              {data.analytics.topConsumedProducts.map((item, index) => (
+              {data?.topProducts.map((item, index) => (
                 <li
                   key={item.name}
                   className="flex items-center justify-between text-sm"
@@ -74,17 +73,26 @@ const Analytics = () => {
             <CardDescription>Products driving your intake</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <TopContributorList
+            <TopContributionsList
               title="By Sugar"
-              items={data.analytics.topContributors.sugar}
+              items={data?.topNutrients[0].topSugar!}
+              remainingPercentage={
+                data?.topNutrients[0].remainingSugarPercentage
+              }
             />
-            <TopContributorList
+            <TopContributionsList
               title="By Caffeine"
-              items={data.analytics.topContributors.caffeine}
+              items={data?.topNutrients[0].topCaffeine!}
+              remainingPercentage={
+                data?.topNutrients[0].remainingCaffeinePercentage
+              }
             />
-            <TopContributorList
+            <TopContributionsList
               title="By Calories"
-              items={data.analytics.topContributors.calories}
+              items={data?.topNutrients[0].topCalories!}
+              remainingPercentage={
+                data?.topNutrients[0].remainingCaloriesPercentage
+              }
             />
           </CardContent>
         </Card>
@@ -100,7 +108,7 @@ const Analytics = () => {
                 Daily Avg. Sugar
               </span>
               <span className="text-base font-bold">
-                {data.analytics.summary.dailyAvgSugar} g
+                {data?.dailySummary[0].avgSugar.toFixed(2)} g
               </span>
             </div>
             <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
@@ -108,7 +116,7 @@ const Analytics = () => {
                 Daily Avg. Caffeine
               </span>
               <span className="text-base font-bold">
-                {data.analytics.summary.dailyAvgCaffeine} mg
+                {(data?.dailySummary[0].avgCaffeine! * 1000).toFixed(2)} mg
               </span>
             </div>
             <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
@@ -116,17 +124,25 @@ const Analytics = () => {
                 Days Exceeding Intake
               </span>
               <span className="text-base font-bold">
-                {data.analytics.summary.daysExceeding} /{" "}
-                {data.analytics.summary.totalDays}
+                {data?.exceededDays[0].numExceededDays} /{" 30"}
               </span>
             </div>
             <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
               <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                Overall Trend
+                Sugar Overall Trend
               </span>
               <div className="flex items-center space-x-2">
-                <span className="text-base font-bold">{TrendText}</span>
-                {TrendIcon}
+                <span className="text-base font-bold">{sugarTrendText}</span>
+                <TrendIcon trend={data?.trend[0].sugarTrend!} />
+              </div>
+            </div>
+            <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
+              <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                Caffeine Overall Trend
+              </span>
+              <div className="flex items-center space-x-2">
+                <span className="text-base font-bold">{caffeineTrendText}</span>
+                <TrendIcon trend={data?.trend[0].caffeineTrend!} />
               </div>
             </div>
           </CardContent>
@@ -142,10 +158,7 @@ const Analytics = () => {
         </CardHeader>
         <CardContent>
           <ol className="space-y-2">
-            {[
-              { name: "user1", count: 10 },
-              { name: "user2", count: 3 },
-            ].map((user, index) => (
+            {data?.topContributors.map((user, index) => (
               <li
                 key={user.name}
                 className="flex items-center justify-between text-sm"
@@ -156,7 +169,7 @@ const Analytics = () => {
                   </span>
                   <span>{user.name}</span>
                 </div>
-                <span className="font-semibold">{user.count}</span>
+                <span className="font-semibold">{user.totalContributions}</span>
               </li>
             ))}
           </ol>

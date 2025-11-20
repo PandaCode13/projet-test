@@ -11,8 +11,8 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import type { DashboardStatistics } from "@/types";
 import { apiFetch } from "@/utils/api";
-import { MOCK_DATA as data, KJTOKCAL } from "@/utils/data";
-import { useQueries, useQuery } from "@tanstack/react-query";
+import { KJTOKCAL } from "@/utils/data";
+import { useQuery } from "@tanstack/react-query";
 import {
   AlertTriangle,
   Coffee,
@@ -21,15 +21,15 @@ import {
   Trophy,
 } from "lucide-react";
 import {
-  ResponsiveContainer,
-  BarChart,
-  LineChart,
   Bar,
+  BarChart,
+  CartesianGrid,
   Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  CartesianGrid,
-  Tooltip,
 } from "recharts";
 
 const THRESHOLD_SUGAR = 50; // grams
