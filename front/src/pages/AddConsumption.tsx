@@ -1,3 +1,4 @@
+import { AsyncSelect } from "@/components/AsyncSelect";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -15,12 +16,18 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useAuth } from "@/lib/hooks";
+import type { DbProductsResponse } from "@/types";
+import { apiFetch } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { CalendarIcon } from "lucide-react";
-import { useState } from "react";
+import { CalendarIcon, LoaderCircle } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import { Link } from "react-router";
+import { Link, useNavigate, useSearchParams } from "react-router";
+import { toast } from "sonner";
 import z from "zod";
 
 const addConsumptionFormSchema = z.object({
@@ -31,23 +38,130 @@ const addConsumptionFormSchema = z.object({
   place: z.string().optional(),
   notes: z.string().optional(),
 });
+const productParamsSchema = z.object({
+  product_code: z.string().optional(),
+  product_name: z.string().optional(),
+});
 
 const AddConsumption = () => {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const paramsObj = Object.fromEntries(searchParams.entries());
+  const result = productParamsSchema.safeParse(paramsObj);
+  const params = result.success ? result.data : productParamsSchema.parse({});
+
+  const { user } = useAuth();
+
   const [open, setOpen] = useState(false);
+
+  const { data: product } = useQuery({
+    queryKey: ["product", params.product_code],
+    enabled: !!params.product_code,
+    queryFn: async () => {
+      if (!params.product_code) return null;
+      const res = await fetch(
+        `https://world.openfoodfacts.org/api/v0/product/${encodeURIComponent(
+          params.product_code
+        )}.json?fields=image_url,product_name,product_name_fr,brands,nutriments`
+      );
+      if (!res.ok) {
+        throw new Error("Failed to fetch product");
+      }
+      return res.json();
+    },
+  });
+
   const form = useForm<z.infer<typeof addConsumptionFormSchema>>({
     resolver: zodResolver(addConsumptionFormSchema),
     mode: "onChange",
     defaultValues: {
       date: new Date(),
       time: "10:00:00",
-      product: "",
+      product: params.product_name || "",
       quantity: 1,
       place: "",
       notes: "",
     },
   });
+  // const productMutation = useMutation({
+  //   mutationFn: async () => {
+  //     if (!product) return;
+  //     const res = await apiFetch(`/products`, {
+  //       method: "POST",
+  //       body: JSON.stringify({
+  //         barcode: params.product_code,
+  //         name: product.product.product_name_fr || product.product.product_name,
+  //         brand: product.product.brands,
+  //         image_url: product.product.image_url,
+  //         energy: product.product.nutriments.energy,
+  //         sugar: product.product.nutriments.sugars || 0,
+  //         caffeine: product.product.nutriments.caffeine || 0,
+  //       }),
+  //     });
+  //     return res;
+  //   },
+  // });
+  const consumptionMutation = useMutation({
+    mutationFn: async (data: z.infer<typeof addConsumptionFormSchema>) => {
+      if (product == null) return;
+      const res = await apiFetch(`/consumptions`, {
+        method: "POST",
+        body: JSON.stringify({
+          product: {
+            name:
+              product.product.product_name_fr || product.product.product_name,
+            barcode: product.code,
+            brand: product.product.brands || "",
+            imageUrl: product.product.image_url || "",
+            sugar: product.product.nutriments.sugars || 0,
+            calories: product.product.nutriments.energy || 0,
+            caffeine: product.product.nutriments.caffeine || 0,
+          },
+          consumption: {
+            date: data.date,
+            time: data.time,
+            quantity: data.quantity,
+            place: data.place,
+            notes: data.notes,
+          },
+        }),
+      });
+      return res;
+    },
+  });
   const onSubmit = (data: z.infer<typeof addConsumptionFormSchema>) => {
     console.log(data);
+    if (!user) {
+      toast.error("You must be logged in to add a consumption.");
+      return;
+    }
+    consumptionMutation.mutate(data, {
+      onSuccess: () => {
+        toast.success("Consumption added successfully!");
+        form.reset();
+        navigate("/");
+      },
+      onError: () => {
+        toast.error("Failed to add consumption. Please try again.");
+      },
+    });
+  };
+  useEffect(() => {
+    if (!user) {
+      console.log("effect user toast", user);
+      toast.error("You must be logged in to add a consumption.");
+    }
+  }, [user]);
+  const fetchProducts = async (query: string): Promise<any> => {
+    console.log(query);
+    const data = (await apiFetch(
+      `/products?query=${query}&external=false`
+    )) as DbProductsResponse;
+    const options = data.results.map((item) => ({
+      value: item._id,
+      label: item.name,
+    }));
+    return options;
   };
   return (
     <div className="flex flex-col items-center">
@@ -57,29 +171,19 @@ const AddConsumption = () => {
           onSubmit={form.handleSubmit(onSubmit)}
           className="space-y-6 md:w-1/2"
         >
-          <FormField
+          <AsyncSelect
             control={form.control}
             name="product"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Product</FormLabel>
-                <FormControl>
-                  <Input placeholder="Product" {...field} />
-                </FormControl>
-                <FormDescription className="italic -mb-2">
-                  If you don't see your product, use the{" "}
-                  <Link
-                    className="underline text-blue-800"
-                    to="/search"
-                  >
-                    products search page
-                  </Link>
-                  .
-                </FormDescription>
-                <FormMessage className="text-red-600" />
-              </FormItem>
-            )}
+            label="Product"
+            placeholder="Search for a product..."
+            queryKey="products-search"
+            fetcher={fetchProducts}
+            product={{
+              label: params.product_name || "",
+              value: params.product_code || "",
+            }}
           />
+
           <FormField
             control={form.control}
             name="date"
@@ -95,19 +199,12 @@ const AddConsumption = () => {
                           !field.value && "text-muted-foreground"
                         }`}
                       >
-                        {field.value ? (
-                          format(field.value, "PPP")
-                        ) : (
-                          <span>Select date</span>
-                        )}
+                        {field.value && format(field.value, "PPP")}
                         <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                       </Button>
                     </FormControl>
                   </PopoverTrigger>
-                  <PopoverContent
-                    className="w-auto p-0 bg-green-400"
-                    align="end"
-                  >
+                  <PopoverContent className="w-auto p-0 bg-white" align="end">
                     <Calendar
                       mode="single"
                       selected={field.value}
@@ -134,8 +231,6 @@ const AddConsumption = () => {
                     {...field}
                     type="time"
                     step="1"
-                    defaultValue="00:00:00"
-                    placeholder="Event Time"
                     className="bg-background appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
                   />
                 </FormControl>
@@ -190,7 +285,7 @@ const AddConsumption = () => {
             )}
           />
           <Button
-            className="w-full text-white bg-green-800 hover:bg-green-700"
+            className="w-full text-white cursor-pointer bg-green-800 hover:bg-green-700"
             type="submit"
           >
             Submit

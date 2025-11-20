@@ -9,21 +9,24 @@ export const getProducts = async (req: Request, res: Response) => {
     const limit = 20;
     const skip = (pageInt - 1) * limit;
     console.log('Products Request');
-    // find products in the database
-    const productsDb = await Product.find({
-      $or: [{ name: { $regex: query, $options: 'i' }, barcode: { $regex: query, $options: 'i' } }]
-    })
-      .skip(skip)
-      .limit(limit);
-    const total = await Product.countDocuments({
-      $or: [{ name: { $regex: query, $options: 'i' } }, { barcode: { $regex: query, $options: 'i' } }]
-    });
-    console.log(productsDb);
-    console.log(total);
-    if (productsDb.length > 0) {
+    
+    if (external === 'false') {
+      // find products in the database
+      const productsDb = await Product.find({
+        $or: [
+          { name: { $regex: query, $options: 'i' } },
+          { barcode: { $regex: query, $options: 'i' } }
+        ]
+      })
+        .skip(skip)
+        .limit(limit);
+      console.log(productsDb);
+      const total = await Product.countDocuments({
+        $or: [{ name: { $regex: query, $options: 'i' } }, { barcode: { $regex: query, $options: 'i' } }]
+      });
       console.log('Products Request DB');
       return res.status(200).json({ results: productsDb, total, page: pageInt, totalPages: Math.ceil(total / limit) });
-    } else if (external || productsDb.length === 0) {
+    } else if (external === 'true') {
       console.log('Products Request API');
       // if no results, search external API and save to database
       const productsApi = await fetch(

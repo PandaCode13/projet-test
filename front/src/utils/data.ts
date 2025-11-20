@@ -1,3 +1,5 @@
+export const KJTOKCAL = 0.239005736;
+
 export const MOCK_DATA = {
   // Data for the gauges and daily averages
   todayMetrics: {

@@ -14,7 +14,7 @@ const productSchema = new Schema<IProduct>(
   {
     name: { type: String, required: true },
     brand: { type: String },
-    barcode: { type: String, required: true },
+    barcode: { type: String, required: true, unique: true },
     imageUrl: { type: String },
     sugar: { type: Number },
     caffeine: { type: Number },

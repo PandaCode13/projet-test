@@ -15,13 +15,13 @@ export const setAuthCookie = (res: Response, accessToken: string, refreshToken: 
   res.cookie(env.ACCESS_TOKEN_COOKIE_NAME, accessToken, {
     httpOnly: true,
     maxAge: parseInt(env.ACCESS_TOKEN_COOKIE_MAX_AGE),
-    secure: isProd,
+    secure: true,
     sameSite: 'none'
   });
   res.cookie(env.REFRESH_TOKEN_COOKIE_NAME, refreshToken, {
     httpOnly: true,
     maxAge: parseInt(env.REFRESH_TOKEN_COOKIE_MAX_AGE),
-    secure: isProd,
+    secure: true,
     sameSite: 'none'
   });
 };

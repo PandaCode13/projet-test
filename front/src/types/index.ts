@@ -43,7 +43,7 @@ export interface Product {
   code: string
   image_url: string
   nutriments: {
-    "energy-kcal_value"?: number
+    energy?: number
     sugars?: number
     caffeine?:number
   }
@@ -51,3 +51,20 @@ export interface Product {
   product_name_fr?: string
 }
 
+export interface DbProductsResponse {
+  results: Result[]
+  total: number
+  page: number
+  totalPages: number
+}
+
+export interface Result {
+  _id: string
+  name: string
+  barcode: string
+  brand: string
+  imageUrl: string
+  sugar: number
+  caffeine: number
+  calories: number
+}

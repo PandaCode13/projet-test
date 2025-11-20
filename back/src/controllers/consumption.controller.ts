@@ -1,10 +1,28 @@
 import { Consumption } from '#models/consumption.model.js';
 import { Product } from '#models/product.model.js';
 import { AuthRequest } from '#types/index.js';
-import { Response } from 'express-serve-static-core';
+import { Request, Response } from 'express-serve-static-core';
+
+export const getConsumptions = async (req: Request, res: Response) => {
+  try {
+    const { page } = req.query as { page: string };
+    const pageInt = page ? parseInt(page) : 1;
+    const limit = 20;
+    const skip = (pageInt - 1) * limit;
+    const consumptions = await Consumption.find().select('-notes').populate('contributorId', 'firstName lastName').populate('product', 'name barcode brand imageUrl sugar calories caffeine').limit(limit).skip(skip);
+    const total = await Consumption.countDocuments();
+    return res
+      .status(200)
+      .json({ results: consumptions, total, page: pageInt, totalPages: Math.ceil(total / limit) });
+  } catch (error) {
+    console.error('Error fetching consumptions: ', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+}
 
 export const addConsumption = async (req: AuthRequest, res: Response) => {
   const { product, consumption } = req.body;
+  console.log('Request Body:', req.body);
   const newProduct = await Product.create({
     name: product.name,
     barcode: product.barcode,
@@ -19,7 +37,7 @@ export const addConsumption = async (req: AuthRequest, res: Response) => {
   }
   const newConsumption = await Consumption.create({
     contributorId: req.userId,
-    productId: newProduct._id,
+    product: newProduct,
     date: consumption.date,
     quantity: consumption.quantity,
     place: consumption.place || '',
