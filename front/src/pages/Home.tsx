@@ -59,8 +59,6 @@ const searchParamsSchema = z.object({
   page: z.coerce.number().min(1).default(1),
 });
 const Home = () => {
-  const pageSize = 20;
-
   const [searchParams, setSearchParams] = useSearchParams();
   const paramsObj = Object.fromEntries(searchParams.entries());
   const result = searchParamsSchema.safeParse(paramsObj);

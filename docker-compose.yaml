@@ -1,11 +1,39 @@
 services:
-  db:
-    image: mongo:4.4
-    restart: unless-stopped
+  backend:
+    build: ./back
+    container_name: backend
+    env_file:
+      - ./back/.env
+    restart: always
     ports:
-      - "27017:27017"
+      - "3000:3000"
+    networks:
+      - appnet
+
+  frontend:
+    build: ./front
+    container_name: frontend
+    restart: always
+    networks:
+      - appnet
+    ports:
+      - "80:80"
+
+  db:
+    image: mongo:latest
+    restart: unless-stopped
     volumes:
       - mongodb-data:/data/db
+    networks:
+          - appnet
+    # Uncomment to change startup options
+    # environment:
+    #  MONGO_INITDB_ROOT_USERNAME: root
+    #  MONGO_INITDB_ROOT_PASSWORD: example
+    #  MONGO_INITDB_DATABASE: your-database-here
+
+networks:
+  appnet:
 
 volumes:
   mongodb-data:
