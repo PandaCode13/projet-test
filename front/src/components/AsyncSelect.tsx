@@ -121,9 +121,9 @@ export function AsyncSelect({
 
                     {/* Options */}
                     <CommandGroup>
-                      {options.map((option) => (
+                      {options.map((option, index) => (
                         <CommandItem
-                          key={option.value}
+                          key={option.value + index}
                           value={option.value}
                           onSelect={() => {
                             field.onChange(option.value); // Update Form Value

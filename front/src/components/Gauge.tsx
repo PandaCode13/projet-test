@@ -7,9 +7,11 @@ interface GaugeProps {
   value: number;
   max: number;
   unit: string;
+  textStyle?:string
 }
 
-const Gauge = ({ label, value, max, unit }: GaugeProps) => {
+const Gauge = ({ label, value, max, unit, textStyle }: GaugeProps) => {
+  const rawPercentage = (value / max) * 100;
   const percentage = Math.min(Math.max((value / max) * 100, 0), 100);
   const radius = 52;
   const circumference = 2 * Math.PI * radius;
@@ -55,12 +57,12 @@ const Gauge = ({ label, value, max, unit }: GaugeProps) => {
             />
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-3xl font-bold">{value}</span>
+            <span className={cn("text-3xl font-bold", textStyle)}>{value}</span>
             <span className="text-xs text-gray-500">{unit}</span>
           </div>
         </div>
         <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-          {percentage.toFixed(0)}% of {max} {unit}
+          {rawPercentage.toFixed(0)}% of {max} {unit}
         </p>
       </CardContent>
     </Card>

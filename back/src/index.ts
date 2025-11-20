@@ -3,6 +3,7 @@ import { env } from '#config/index.js';
 import authRouter from '#routes/auth.routes.js';
 import productRouter from '#routes/product.routes.js';
 import consumptionRouter from '#routes/consumption.routes.js';
+import statisticsRouter from '#routes/statistics.routes.js';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import express, { Express } from 'express';
@@ -23,6 +24,7 @@ app.use(express.json());
 app.use('/api/auth', authRouter);
 app.use('/api/products', productRouter)
 app.use('/api/consumptions', consumptionRouter)
+app.use('/api/dashboard', statisticsRouter)
 const server = app.listen(PORT, async () => {
   await connectDB();
   console.log(`Server is running on port ${PORT}`);

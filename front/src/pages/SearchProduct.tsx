@@ -203,12 +203,13 @@ const SearchProduct = () => {
                   params.page === 1 && "opacity-50 pointer-events-none",
                   "bg-green-800 text-white cursor-pointer hover:bg-green-900 hover:text-gray-200"
                 )}
-                onClick={() =>
+                onClick={() => {
                   setSearchParams({
                     ...Object.fromEntries(searchParams),
                     page: String(params.page - 1),
-                  })
-                }
+                  });
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
               />
             </PaginationItem>
             {paginationRange.map((p, i) => (
@@ -222,12 +223,13 @@ const SearchProduct = () => {
                       p === params.page &&
                         "pointer-events-none bg-white text-black"
                     )}
-                    onClick={() =>
+                    onClick={() => {
                       setSearchParams({
                         ...Object.fromEntries(searchParams),
                         page: String(p),
-                      })
-                    }
+                      });
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
                     isActive={p === params.page}
                   >
                     {p}
@@ -237,12 +239,13 @@ const SearchProduct = () => {
             ))}
             <PaginationItem>
               <PaginationNext
-                onClick={() =>
+                onClick={() => {
                   setSearchParams({
                     ...Object.fromEntries(searchParams),
                     page: String(params.page + 1),
-                  })
-                }
+                  });
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
                 className={cn(
                   params.page === totalPages &&
                     "opacity-50 pointer-events-none",

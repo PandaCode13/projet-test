@@ -1,5 +1,6 @@
 import { Consumption } from '#models/consumption.model.js';
 import { Product } from '#models/product.model.js';
+import { Statistics } from '#models/statistics.model.js';
 import { AuthRequest } from '#types/index.js';
 import { Request, Response } from 'express-serve-static-core';
 
@@ -45,6 +46,25 @@ export const addConsumption = async (req: AuthRequest, res: Response) => {
   });
   if (!newConsumption) {
     return res.status(500).json({ message: 'Error adding consumption' });
+  }
+  // find statistics document for today and update it
+  const statDate = new Date(consumption.date);
+  statDate.setHours(0, 0, 0, 0);
+  let stats = await Statistics.findOne({ date: statDate });
+  if (!stats) {
+    stats = await Statistics.create({
+      date: statDate,
+      totalConsumptions: 1,
+      totalSugar: (newProduct.sugar || 0) * consumption.quantity,
+      totalCaffeine: (newProduct.caffeine || 0) * consumption.quantity,
+      totalCalories: (newProduct.calories || 0) * consumption.quantity
+    });
+  } else {
+    stats.totalConsumptions += 1;
+    stats.totalSugar += (newProduct.sugar || 0) * consumption.quantity;
+    stats.totalCaffeine += (newProduct.caffeine || 0) * consumption.quantity;
+    stats.totalCalories += (newProduct.calories || 0) * consumption.quantity;
+    await stats.save();
   }
   return res.status(201).json({ message: 'Consumption added successfully', consumptionId: newConsumption._id });
 };

@@ -65,3 +65,18 @@ export const createProduct = async (req: Request, res: Response) => {
     return res.status(500).json({ message: 'Internal server error' });
   }
 };
+
+export const getProduct = async (req: Request, res: Response) => {
+  try {
+    const {productId} = req.params;
+    console.log('Fetching product with code:', productId);
+    const product = await Product.findOne({ barcode: productId });
+    if (!product) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+    return res.status(200).json(product);
+  } catch (error) {
+    console.error('Error fetching product: ', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};

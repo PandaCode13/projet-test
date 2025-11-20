@@ -68,3 +68,61 @@ export interface Result {
   caffeine: number
   calories: number
 }
+
+export interface DashboardStatistics {
+  latestStats: LatestStats
+  sugarByDay: SugarByDay[]
+  caffeineEvolution: CaffeineEvolution[]
+  avgDailySugar: number
+  avgDailyCaffeine: number
+  mostConsumedProduct: MostConsumedProduct
+  topSugarProduct: TopSugarProduct
+  alertHistory: AlertHistory[]
+}
+
+export interface LatestStats {
+  _id: string
+  date: string
+  totalConsumptions: number
+  totalSugar: number
+  totalCaffeine: number
+  totalCalories: number
+  createdAt: string
+  updatedAt: string
+  __v: number
+}
+
+export interface SugarByDay {
+  _id: string
+  totalSugar: number
+}
+
+export interface CaffeineEvolution {
+  cumulativeCaffeine: number
+  hour: number
+}
+
+export interface MostConsumedProduct {
+  _id: string
+  name: string
+  brand: string
+  barcode: string
+  imageUrl: string
+  sugar: number
+  caffeine: number
+  calories: number
+  createdAt: string
+  updatedAt: string
+  __v: number
+}
+
+export interface TopSugarProduct {
+  _id: string
+  name: string
+  totalSugar: number
+}
+
+export interface AlertHistory {
+  date: string
+  exceeded: string[]
+}

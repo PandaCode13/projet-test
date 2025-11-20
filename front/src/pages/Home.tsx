@@ -75,7 +75,7 @@ const Home = () => {
       return data;
     },
   });
-  
+
   const totalPages = consumptions?.totalPages ?? 1;
   const paginationRange = useMemo(
     () => getPaginationRange(params.page, totalPages, 1),
@@ -104,8 +104,8 @@ const Home = () => {
                   <div className="shrink-0 w-20 h-20 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
                     <img
                       className="h-20 w-20 rounded-full object-cover object-center ring-2 shadow-sm"
-                      src="https://images.openfoodfacts.org/images/products/900/249/021/5408/front_sv.19.full.jpg"
-                      alt="Redbull 250ml"
+                      src={item.product.imageUrl}
+                      alt={item.product.name}
                     />
                   </div>
                   <div>
@@ -148,65 +148,68 @@ const Home = () => {
         </CardContent>
       </Card>
       {/* Add pagination */}
-     {consumptions && (
-             <Pagination className="mt-4 justify-center">
-               <PaginationContent>
-                 <PaginationItem>
-                   <PaginationPrevious
-                     className={cn(
-                       params.page === 1 && "opacity-50 pointer-events-none",
-                       "bg-green-800 text-white cursor-pointer hover:bg-green-900 hover:text-gray-200"
-                     )}
-                     onClick={() =>
-                       setSearchParams({
-                         ...Object.fromEntries(searchParams),
-                         page: String(params.page - 1),
-                       })
-                     }
-                   />
-                 </PaginationItem>
-                 {paginationRange.map((p, i) => (
-                   <PaginationItem key={`${p}-${i}`}>
-                     {p === "..." ? (
-                       <PaginationEllipsis />
-                     ) : (
-                       <PaginationLink
-                         className={cn(
-                           "bg-green-800 text-white hover:bg-green-900 hover:text-gray-200 cursor-pointer",
-                           p === params.page &&
-                             "pointer-events-none bg-white text-black"
-                         )}
-                         onClick={() =>
-                           setSearchParams({
-                             ...Object.fromEntries(searchParams),
-                             page: String(p),
-                           })
-                         }
-                         isActive={p === params.page}
-                       >
-                         {p}
-                       </PaginationLink>
-                     )}
-                   </PaginationItem>
-                 ))}
-                 <PaginationItem>
-                   <PaginationNext
-                     onClick={() =>
-                       setSearchParams({
-                         ...Object.fromEntries(searchParams),
-                         page: String(params.page + 1),
-                       })
-                     }
-                     className={cn(
-                       params.page === totalPages &&
-                         "opacity-50 pointer-events-none",
-                       "bg-green-800 cursor-pointer text-white hover:bg-green-900 hover:text-gray-200"
-                     )}
-                   />
-                 </PaginationItem>
-               </PaginationContent>
-             </Pagination>
-           )}
+      {consumptions && (
+        <Pagination className="mt-4 justify-center">
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious
+                className={cn(
+                  params.page === 1 && "opacity-50 pointer-events-none",
+                  "bg-green-800 text-white cursor-pointer hover:bg-green-900 hover:text-gray-200"
+                )}
+                onClick={() => {
+                  setSearchParams({
+                    ...Object.fromEntries(searchParams),
+                    page: String(params.page - 1),
+                  });
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+              />
+            </PaginationItem>
+            {paginationRange.map((p, i) => (
+              <PaginationItem key={`${p}-${i}`}>
+                {p === "..." ? (
+                  <PaginationEllipsis />
+                ) : (
+                  <PaginationLink
+                    className={cn(
+                      "bg-green-800 text-white hover:bg-green-900 hover:text-gray-200 cursor-pointer",
+                      p === params.page &&
+                        "pointer-events-none bg-white text-black"
+                    )}
+                    onClick={() => {
+                      setSearchParams({
+                        ...Object.fromEntries(searchParams),
+                        page: String(p),
+                      });
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                    isActive={p === params.page}
+                  >
+                    {p}
+                  </PaginationLink>
+                )}
+              </PaginationItem>
+            ))}
+            <PaginationItem>
+              <PaginationNext
+                onClick={() => {
+                  setSearchParams({
+                    ...Object.fromEntries(searchParams),
+                    page: String(params.page + 1),
+                  });
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+                className={cn(
+                  params.page === totalPages &&
+                    "opacity-50 pointer-events-none",
+                  "bg-green-800 cursor-pointer text-white hover:bg-green-900 hover:text-gray-200"
+                )}
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
+      )}
     </>
   );
 };
