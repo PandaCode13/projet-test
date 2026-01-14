@@ -1,19 +1,21 @@
+// src/config/constants.ts
 export const API_CONFIG = {
-  BASE_URL: 'http://localhost:3000',
+  BASE_URL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000',
   ENDPOINTS: {
-    // Auth
     LOGIN: '/auth/login',
     REGISTER: '/auth/register',
-    
-    // Stats
     STATS: '/stats',
     HISTORY: '/history',
     DASHBOARD: '/stats/dashboard',
-    
-    // Foods
     FOODS: '/foods',
     FOODS_SEARCH: '/foods/search',
   }
+};
+
+export const APP_CONFIG = {
+  NAME: import.meta.env.VITE_APP_NAME || 'GlycAmed',
+  VERSION: '1.0.0',
+  ENV: import.meta.env.VITE_APP_ENV || 'development',
 };
 
 export const STORAGE_KEYS = {
