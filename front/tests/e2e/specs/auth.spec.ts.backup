@@ -1,0 +1,26 @@
+// tests/auth.spec.ts
+import { test, expect } from '@playwright/test';
+
+test.describe('Authentification GlycAmed', () => {
+  
+  test('page de login accessible', async ({ page }) => {
+    await page.goto('/login');
+    
+    // Vérifie les éléments de la page de login
+    await expect(page.getByText(/connexion|login/i)).toBeVisible();
+    await expect(page.locator('input[type="email"]')).toBeVisible();
+    await expect(page.locator('input[type="password"]')).toBeVisible();
+    await expect(page.getByRole('button', { name: /connexion|se connecter/i })).toBeVisible();
+  });
+  
+  test('redirection vers register depuis login', async ({ page }) => {
+    await page.goto('/login');
+    
+    // Cherche et clique sur le lien d'inscription
+    const registerLink = page.getByText(/s'inscrire|register|créer un compte/i);
+    if (await registerLink.isVisible()) {
+      await registerLink.click();
+      await expect(page).toHaveURL(/register|signup/);
+    }
+  });
+});

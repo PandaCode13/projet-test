@@ -1,3 +1,4 @@
+// src/pages/Login.tsx - Version optimisée pour le TP
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -8,16 +9,17 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { useAuth } from "@/lib/hooks";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { Link, useNavigate } from "react-router";
 import { toast } from "sonner";
 import z from "zod";
+import { useAuthStore } from "@/lib/store"; // 🔥 Directement le store
+import { authService } from "@/services/api"; // 🔥 Service API centralisé
+import { STORAGE_KEYS, ROUTES } from "@/config/constants"; // 🔥 Constantes
 
 const loginFormSchema = z.object({
-  email: z.email("Invalid email address"),
+  email: z.string().email("Invalid email address"),
   password: z.string().min(8, "Password must be at least 8 characters"),
 });
 
@@ -30,25 +32,57 @@ const Login = () => {
       password: "",
     },
   });
+  
   const navigate = useNavigate();
-  const { login } = useAuth();
-  const mutation = useMutation({
-    mutationKey: ["login"],
-    mutationFn: login,
-    onSuccess: () => {
-      navigate("/");
-    },
-    onError: () => {
-      toast.error("Login failed. Please try again.");
-    },
-  });
-  const onSubmit = (data: z.infer<typeof loginFormSchema>) => {
-    mutation.mutate(data);
+  
+  // 🔥 Récupérer l'état et les méthodes du store
+  const { setUser } = useAuthStore();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
+  const onSubmit = async (data: z.infer<typeof loginFormSchema>) => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      // 🔥 Utiliser le service API centralisé
+      const response = await authService.login(data.email, data.password);
+      const { user, token } = response.data;
+      
+      // 🔥 Mettre à jour le store
+      setUser(user);
+      
+      // 🔥 Stocker le token (géré par les intercepteurs axios)
+      localStorage.setItem(STORAGE_KEYS.TOKEN, token);
+      localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
+      
+      // Redirection
+      navigate(ROUTES.DASHBOARD || "/");
+      
+      toast.success("Login successful!");
+      
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || "Login failed";
+      setError(errorMessage);
+      toast.error(errorMessage);
+      
+    } finally {
+      setIsLoading(false);
+    }
   };
+  
   return (
     <div className="flex flex-col items-center">
       <Form {...form}>
         <h1 className="text-2xl font-medium mb-4">Login</h1>
+        
+        {/* Affichage des erreurs */}
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded">
+            {error}
+          </div>
+        )}
+        
         <form
           onSubmit={form.handleSubmit(onSubmit)}
           className="space-y-6 md:w-1/2"
@@ -60,7 +94,12 @@ const Login = () => {
               <FormItem>
                 <FormLabel>Email</FormLabel>
                 <FormControl>
-                  <Input placeholder="Type your email" {...field} />
+                  <Input 
+                    placeholder="Type your email" 
+                    {...field} 
+                    data-testid="email-input"
+                    disabled={isLoading}
+                  />
                 </FormControl>
                 <FormMessage className="text-red-600" />
               </FormItem>
@@ -77,6 +116,7 @@ const Login = () => {
                     type="password"
                     placeholder="Type your password"
                     {...field}
+                    disabled={isLoading}
                   />
                 </FormControl>
                 <FormMessage className="text-red-600" />
@@ -86,14 +126,19 @@ const Login = () => {
           <Button
             className="w-full text-white bg-green-800 hover:bg-green-700"
             type="submit"
+            data-testid="login-button"
+            disabled={isLoading || !form.formState.isValid}
           >
-            Login
+            {isLoading ? "Logging in..." : "Login"}
           </Button>
         </form>
       </Form>
       <span className="mt-4">
-        Dont't have an account?{" "}
-        <Link className="underline text-blue-800" to="/signup">
+        Don't have an account?{" "}
+        <Link 
+          className="underline text-blue-800" 
+          to={ROUTES.REGISTER || "/signup"}
+        >
           Sign up
         </Link>
       </span>

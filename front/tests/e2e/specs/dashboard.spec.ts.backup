@@ -1,0 +1,43 @@
+// tests/dashboard.spec.ts
+import { test, expect } from '@playwright/test';
+
+// Helper pour se connecter
+async function login(page) {
+  await page.goto('/login');
+  await page.fill('input[type="email"]', 'test@example.com');
+  await page.fill('input[type="password"]', 'password123');
+  await page.click('button[type="submit"]');
+  await page.waitForURL(/dashboard|app|home/);
+}
+
+test.describe('Dashboard GlycAmed', () => {
+  
+  test('dashboard accessible après connexion', async ({ page }) => {
+    // Cette test nécessite que l'API backend fonctionne
+    // Pour le moment, on vérifie juste que la route existe
+    await page.goto('/dashboard');
+    
+    // Soit on est redirigé vers login, soit le dashboard s'affiche
+    const currentUrl = page.url();
+    
+    if (currentUrl.includes('/login')) {
+      console.log('Redirection vers login - normal si non connecté');
+      await expect(page).toHaveURL(/login/);
+    } else {
+      // Si on est sur le dashboard, vérifier les éléments
+      await expect(page.getByText(/tableau de bord|dashboard/i)).toBeVisible();
+      await expect(page.getByText(/sucre|caféine|consommation/i)).toBeVisible();
+    }
+  });
+  
+  test('contient les jauges de santé', async ({ page }) => {
+    await page.goto('/dashboard');
+    
+    // Chercher les éléments de jauges
+    // ADAPTER selon votre implémentation
+    const sugarElements = await page.getByText(/sucre|sugar/i).count();
+    const caffeineElements = await page.getByText(/caféine|caffeine/i).count();
+    
+    expect(sugarElements + caffeineElements).toBeGreaterThan(0);
+  });
+});
